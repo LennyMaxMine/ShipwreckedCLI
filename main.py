@@ -1,7 +1,10 @@
 import json
 import os
+from unittest import skip
 import requests
 from datetime import datetime, timezone
+from src import leaderboard
+from src.leaderboard import generate_leaderboard, print_leaderboard_table
 
 stored_user_name = ""
 inShop = False
@@ -197,6 +200,10 @@ def user_submenu_commands(field):
     except:
         cmdl_cmd_not_found()
 
+def leaderboard(top: int):
+    r = requests.get("https://shipwrecked.hackclub.com/api/users")
+    print("Stored: "+ stored_user_name)
+    generate_leaderboard(r.json(), top_n=top, highlight_name=stored_user_name)
 
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
@@ -244,6 +251,7 @@ while True:
             print("\n--- Submenus (use help <submenu> to view commands help page) ---")
             print("shop - enter the shop")
             print("user - enter the shipwrecked settings screen")
+            print("leaderboard <length> - show the leaderboard sorted by hours")
         else:
             print("Uh oh, seems like that help command was invalid.")
             print(len(cmdl))
@@ -258,5 +266,18 @@ while True:
         inShop = True
     elif cmdl == "user":
         inUser = True
+    elif cmdl.startswith("leaderboard"):
+        cmdl = cmdl.split()
+        try:
+            if len(cmdl) == 2:
+                tmp = int(cmdl[1])
+            elif len(cmdl) == 1:
+                tmp = 10
+            else:
+                cmdl_cmd_not_found()
+                continue
+            leaderboard(tmp)
+        except:
+            cmdl_cmd_not_found()
     else:
-        cmdl_cmd_not_found()a
+        cmdl_cmd_not_found()
