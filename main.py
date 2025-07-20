@@ -4,6 +4,7 @@ import requests
 from datetime import datetime, timezone
 
 stored_user_name = ""
+inShop = False
 
 if not os.path.exists("data.json"):
     print("Welcome to ShipwreckedCLI. Let's get you all setup.")
@@ -36,6 +37,13 @@ def r_user_data():
     global stored_user_name
     stored_user_name = r.json()['name'].lower()
     return r.json()
+
+def generate_cmd_line():
+    currentscreen = ""
+    if inShop == True:
+        currentscreen = "shop/"
+    cmdline = f"\n{stored_user_name}@shipwrecked:~/{currentscreen}$ "
+    return cmdline
 
 def whoami():
     tmp_user_data = r_user_data()
@@ -75,24 +83,87 @@ def progress():
     print(f"Island Progress: {data["progress"]["total"]["percentage"]}% (earned: {data["progress"]["total"]["percentage"] - data["progress"]["purchased"]["percentage"]} | purchased {data["progress"]["purchased"]["percentage"]})")
     print(f"Shells: {data["shells"]} (earned: {data["earnedShells"]} | spent: {data["totalSpent"]})")
 
+def print_shop_submenu_help_screen():
+    print("--- Shop Submenu Commands ---")
+    print("items - view shop items")
+    print("purchase <item> - buy shop item (under construction - not working rn)")
+    print("orders - view shop orders")
+    print("back - exit back to main programm")
+
+def print_shop_items():
+    r = requests.get("https://shipwrecked.hackclub.com/api/bay/shop/items", headers=user_headers)
+    r2 = requests.get("https://shipwrecked.hackclub.com/api/users/me/shells", headers=user_headers)
+    data = r.json()
+    shell_data = r2.json()
+
+    print(f"Shell Shop ({shell_data["shells"]} shells available | {len(data["items"])} in shop)")
+    for item in data["items"]:
+        print(f"\n- {item["name"]} (id: {item["id"]}) -")
+        print(item["description"])
+        print(f"Price {item["price"]}")
+
+def print_shop_orders():
+    r = requests.get("https://shipwrecked.hackclub.com/api/users/me/shop-orders", headers=user_headers)
+    data = r.json()
+    data2 = data["orders"]
+
+    status_ff = 0
+    status_p = 0
+    for order in data2:
+        if order["status"] == "fulfilled":
+            status_ff += 1
+        elif order["status"] == "pending":
+            status_p += 1
+
+    print(f"You have {len(data2)} orders ({status_ff} fulfilled | {status_p} pending)")
+
+    for order in data2:
+        print(f"\n- {order["itemName"]} (id: {order["itemId"]} | orderID: {order["id"]}) -")
+        print(f"Quantity: {order["quantity"]}")
+        print(f"Price: {order["price"]} ({order["price"] / order["quantity"]:.0f} per item)")
+
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
 
 while True:
-    cmdl = input(f"\n{stored_user_name}@shipwrecked:~/$ ")
+    cmdl = input(generate_cmd_line()).lower()
 
-    if cmdl == "help":
-        print("help - Show this help message")
+    if inShop == True:
+        if cmdl == "back":
+            inShop = False
+        elif cmdl == "help":
+            print_shop_submenu_help_screen()
+        elif cmdl == "items":
+            print_shop_items()
+        elif cmdl == "orders":
+            print_shop_orders()
+    elif "help" in cmdl:
+        cmdl = cmdl.split(" ")
+        if len(cmdl) == 2:
+            if "shop" in cmdl[1]:
+                print_shop_submenu_help_screen()
+        elif len(cmdl) == 1:
+            print("--- General commands ---")
+            print("help - Show this help message")
+            print("whoami - Show your user data")
+            print("session - Show your session data")
+            print("progress - Show your progress to the island!")
+            print("\n--- Submenus (use help <submenu> to view commands help page) ---")
+            print("shop - enter the shop")
+        else:
+            print("Uh oh, seems like that help command was invalid.")
+            print(len(cmdl))
         print("exit - Exit the program")
-        print("whoami - Show your user data")
-        print("session - Show your session data")
-        print("progress - Show your progress to the island!")
     elif cmdl == "whoami":
         whoami()
     elif cmdl == "session":
         session()
     elif cmdl == "progress":
         progress()
+    elif cmdl == "shop":
+        inShop = True
     elif cmdl == "exit":
         print("Until next time!")
         break
+    else:
+        print("Uh oh, seems like you have entered an invalid or unknown command.")
