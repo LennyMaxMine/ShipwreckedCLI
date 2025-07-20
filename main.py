@@ -216,7 +216,7 @@ while True:
     elif inShop == True:
         if cmdl == "back":
             inShop = False
-        elif cmdl == "help":
+        elif cmdl.startswith("help"):
             print_shop_submenu_help_screen()
         elif cmdl == "items":
             print_shop_items()
@@ -227,7 +227,7 @@ while True:
         else:
             cmdl_cmd_not_found()
     elif inUser == True:
-        if cmdl == "help":
+        if cmdl.startswith("help"):
             print_user_submenu_help_screen()
         elif cmdl == "back":
             inUser = False
@@ -248,10 +248,10 @@ while True:
             print("whoami - Show your user data")
             print("session - Show your session data")
             print("progress - Show your progress to the island!")
+            print("leaderboard <length> - show the leaderboard sorted by hours")
             print("\n--- Submenus (use help <submenu> to view commands help page) ---")
             print("shop - enter the shop")
             print("user - enter the shipwrecked settings screen")
-            print("leaderboard <length> - show the leaderboard sorted by hours")
         else:
             print("Uh oh, seems like that help command was invalid.")
             print(len(cmdl))
