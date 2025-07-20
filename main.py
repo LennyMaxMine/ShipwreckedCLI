@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 stored_user_name = ""
 inShop = False
+inUser = False
 
 if not os.path.exists("data.json"):
     print("Welcome to ShipwreckedCLI. Let's get you all setup.")
@@ -42,8 +43,17 @@ def generate_cmd_line():
     currentscreen = ""
     if inShop == True:
         currentscreen = "shop/"
+    elif inUser == True:
+        currentscreen = "user/"
     cmdline = f"\n{stored_user_name}@shipwrecked:~/{currentscreen}$ "
     return cmdline
+
+def cmdl_exit():
+    print("Until next time!")
+    exit()
+
+def cmdl_cmd_not_found():
+    print("Uh oh, seems like you have entered an invalid or unknown command.")
 
 def whoami():
     tmp_user_data = r_user_data()
@@ -88,6 +98,7 @@ def print_shop_submenu_help_screen():
     print("items - view shop items")
     print("purchase <item> - buy shop item (under construction - not working rn)")
     print("orders - view shop orders")
+    print("inventory - view your fulfilled orders")
     print("back - exit back to main programm")
 
 def print_shop_items():
@@ -122,13 +133,80 @@ def print_shop_orders():
         print(f"Quantity: {order["quantity"]}")
         print(f"Price: {order["price"]} ({order["price"] / order["quantity"]:.0f} per item)")
 
+def print_shop_inventory():
+    r = requests.get("https://shipwrecked.hackclub.com/api/users/me/shop-orders", headers=user_headers)
+    data = r.json()
+    data2 = data["orders"]
+
+    status_ff = 0
+    for order in data2:
+        if order["status"] == "fulfilled":
+            status_ff += 1
+
+    print(f"You have {status_ff} individual item(s) in your inventory")
+
+    for order in data2:
+        if order["status"] == "fulfilled":
+            print(f"\n- {order["itemName"]} (id: {order["itemId"]} | orderID: {order["id"]}) -")
+            print(f"Quantity: {order["quantity"]} in Inventory")
+            print(f"Price: {order["price"]} ({order["price"] / order["quantity"]:.0f} per item)")
+
+def print_user_submenu_help_screen():
+    print("--- User Submenu Commands ---")
+    print("name - show your name")
+    print("email - show your email")
+    print("address - show your address")
+    print("birthday - show your birthday")
+    print("phone - show your phone number")
+    print("id - print your id")
+    print("email-verification - show your email verification status")
+    print("identity-verification - show your identity verification status")
+    print("slack-connected - show your slack connection status")
+    print("back - exit back to main programm")
+
+def user_submenu_commands(field):
+    r = requests.get("https://shipwrecked.hackclub.com/api/identity/me", headers=user_headers)
+    user_data = r.json()
+
+    try:
+        if field == "address":
+            for addr in user_data["addresses"]:
+                if addr["primary"]:
+                    print(f"{addr['line_1']}, {addr['city']}, {addr['state']} {addr['postal_code']}, {addr['country']}")
+        elif field == "birthday":
+            print(user_data["birthday"])
+        elif field == "name":
+            print(f"{user_data['first_name']} {user_data['last_name']}")
+        elif field == "email":
+            print(user_data["primary_email"])
+        elif field == "phone":
+            print(user_data["phone_number"])
+        elif field == "id":
+            print(user_data["id"])
+        elif field == "email-verification":
+            print(user_data["verification_status"])
+        elif field == "identity-verification":
+            print(user_data["ysws_eligible"])
+        elif field == "slack-connected":
+            if user_data["slack_id"] is not None or "":
+                print(user_data["slack_id"])
+            else:
+                print("False")
+        else:
+            print(f"Field '{field}' not found or not supported")
+    except:
+        cmdl_cmd_not_found()
+
+
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
 
 while True:
     cmdl = input(generate_cmd_line()).lower()
 
-    if inShop == True:
+    if cmdl == "exit":
+        cmdl_exit()
+    elif inShop == True:
         if cmdl == "back":
             inShop = False
         elif cmdl == "help":
@@ -137,11 +215,26 @@ while True:
             print_shop_items()
         elif cmdl == "orders":
             print_shop_orders()
+        elif cmdl == "inventory":
+            print_shop_inventory()
+        else:
+            cmdl_cmd_not_found()
+    elif inUser == True:
+        if cmdl == "help":
+            print_user_submenu_help_screen()
+        elif cmdl == "back":
+            inUser = False
+        elif cmdl == "exit":
+            cmdl_exit()
+        else:
+            user_submenu_commands(cmdl)
     elif "help" in cmdl:
         cmdl = cmdl.split(" ")
         if len(cmdl) == 2:
             if "shop" in cmdl[1]:
                 print_shop_submenu_help_screen()
+            elif "user" in cmdl[1]:
+                print_user_submenu_help_screen()
         elif len(cmdl) == 1:
             print("--- General commands ---")
             print("help - Show this help message")
@@ -150,6 +243,7 @@ while True:
             print("progress - Show your progress to the island!")
             print("\n--- Submenus (use help <submenu> to view commands help page) ---")
             print("shop - enter the shop")
+            print("user - enter the shipwrecked settings screen")
         else:
             print("Uh oh, seems like that help command was invalid.")
             print(len(cmdl))
@@ -162,8 +256,7 @@ while True:
         progress()
     elif cmdl == "shop":
         inShop = True
-    elif cmdl == "exit":
-        print("Until next time!")
-        break
+    elif cmdl == "user":
+        inUser = True
     else:
-        print("Uh oh, seems like you have entered an invalid or unknown command.")
+        cmdl_cmd_not_found()a
