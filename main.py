@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from src import leaderboard
 from src.leaderboard import generate_leaderboard, print_leaderboard_table
 
+version = "0.5.0"
+
 configfilepath = "iljhna.shipwreckedcli"
 
 stored_user_name = ""
@@ -210,6 +212,51 @@ def leaderboard(top: int):
     print("Stored: "+ stored_user_name)
     generate_leaderboard(r.json(), top_n=top, highlight_name=stored_user_name)
 
+def fetch():
+    user_data = r_user_data()
+        
+    progress_r = requests.get("https://shipwrecked.hackclub.com/api/users/me/shells", headers=user_headers)
+    progress_data = progress_r.json()
+        
+    session_r = requests.get("https://shipwrecked.hackclub.com/api/auth/session", headers=user_headers)
+    session_data = session_r.json()
+        
+    target_time = datetime.fromisoformat(session_data['expires'])
+    current_time = datetime.now(timezone.utc)
+    time_diff = target_time - current_time
+    days = time_diff.days
+    hours = time_diff.seconds // 3600
+        
+    orders_r = requests.get("https://shipwrecked.hackclub.com/api/users/me/shop-orders", headers=user_headers)
+    orders_data = orders_r.json()
+    total_orders = len(orders_data["orders"])
+    fulfilled_orders = sum(1 for order in orders_data["orders"] if order["status"] == "fulfilled")
+        
+    ascii_art = """
+         🏴‍☠️ SHIPWRECKED CLI v""" + version + """ 🏴‍☠️
+    ⚓ ═══════════════════════════════ ⚓
+       🏝️  Welcome aboard, sailor!  🏝️
+    """
+        
+    print(ascii_art)
+    print(f"    👤 User: {user_data['name']}")
+    print(f"    📧 Email: {user_data['email']}")
+    print(f"    🆔 ID: {user_data['id']}")
+    print(f"    🐚 Shells: {progress_data['shells']} (earned: {progress_data['earnedShells']}, spent: {progress_data['totalSpent']})")
+    print(f"    🏝️ Progress: {progress_data['progress']['total']['percentage']:.1f}%")
+    print(f"    📦 Orders: {total_orders} total ({fulfilled_orders} fulfilled)")
+    print(f"    ⏰ Session: {days}d {hours}h remaining")
+    print(f"    👑 Admin: {'Yes' if user_data.get('isAdmin', False) else 'No'}")
+    print(f"    🛒 Shop Admin: {'Yes' if user_data.get('isShopAdmin', False) else 'No'}")
+    print(f"    💬 Slack: {'Connected' if user_data.get('slack') else 'Not connected'}")
+    print(f"    ✅ Verified: {'Yes' if user_data.get('emailVerified', False) else 'No'}")
+    print()
+    print("    ⚓ ═══════════════════════════════ ⚓")
+    print("      Developed with ♥ by LennyMaxMine")
+    print("    Frankfurt, Germany | HC Shipwrecked 2025")
+    print("    ⚓ ═══════════════════════════════ ⚓")
+    print()
+
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
 
@@ -286,6 +333,8 @@ while True:
             leaderboard(tmp)
         except:
             cmdl_cmd_not_found()
+    elif cmdl == "fetch":
+        fetch()
     elif cmdl == "logout":
         if (input("Are you sure you want to logout? (this cant be undone) (y/n): ")).lower() == "y":
             os.remove(configfilepath)

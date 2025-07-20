@@ -55,6 +55,7 @@ A powerful terminal-based client for Hack Club's Shipwrecked hackathon website, 
 | `progress` | View your progress toward the island |
 | `leaderboard <length>` | Display leaderboard sorted by hours |
 | `logut` | Delete all your locally stored account data  |
+| `fetch` | Fetch your ShipwreckedCli information  |
 
 ### Shop Commands
 
