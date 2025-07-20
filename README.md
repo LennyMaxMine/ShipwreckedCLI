@@ -105,9 +105,14 @@ This project is actively developed for the 2025 Hack Club Shipwrecked Hackathon.
 - Dependencies listed in `requirements.txt`
 - Valid Shipwrecked account credentials
 
-## Licensea
+## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file (which will be added later :D) for details.
 
 ## Credits
 
 Developed with ♥ by **LennyMaxMine** in Frankfurt, Germany for the 2025 Hack Club Shipwrecked Hackathon.
+
+---
+
+###  This Project is not officially from Hack Club. It is made by a member of Hack Club.
+
