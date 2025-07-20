@@ -54,6 +54,7 @@ A powerful terminal-based client for Hack Club's Shipwrecked hackathon website, 
 | `session` | Show current session information |
 | `progress` | View your progress toward the island |
 | `leaderboard <length>` | Display leaderboard sorted by hours |
+| `logut` | Delete all your locally stored account data  |
 
 ### Shop Commands
 
@@ -88,6 +89,7 @@ Access user settings with the `user` command, then use:
 | Command | Description |
 |---------|-------------|
 | `exit` | Exit the application |
+| `clear` | Clear the screen |
 
 ### Getting Help
 

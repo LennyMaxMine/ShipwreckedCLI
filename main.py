@@ -6,11 +6,13 @@ from datetime import datetime, timezone
 from src import leaderboard
 from src.leaderboard import generate_leaderboard, print_leaderboard_table
 
+configfilepath = "iljhna.shipwreckedcli"
+
 stored_user_name = ""
 inShop = False
 inUser = False
 
-if not os.path.exists("data.json"):
+if not os.path.exists(configfilepath):
     print("Welcome to ShipwreckedCLI. Let's get you all setup.")
     print("Well first start by logging you in!")
     print("You will find all the cookies you need for logging in under the 'Application' tab in the 'Cookies' section of your browser.\n")
@@ -24,12 +26,12 @@ if not os.path.exists("data.json"):
         "session_token": session_token
     }
 
-    with open("data.json", "w") as file:
+    with open(configfilepath, "w") as file:
         file.write(json.dumps(data))
 else:
     print("Welcome back!")
 
-with open("data.json", "r") as file:
+with open(configfilepath, "r") as file:
     user_data = json.load(file)
     
     user_headers = {
@@ -57,6 +59,9 @@ def cmdl_exit():
 
 def cmdl_cmd_not_found():
     print("Uh oh, seems like you have entered an invalid or unknown command.")
+
+def cmdl_clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def whoami():
     tmp_user_data = r_user_data()
@@ -213,6 +218,8 @@ while True:
 
     if cmdl == "exit":
         cmdl_exit()
+    elif cmdl == "clear":
+        cmdl_clear()
     elif inShop == True:
         if cmdl == "back":
             inShop = False
@@ -279,5 +286,9 @@ while True:
             leaderboard(tmp)
         except:
             cmdl_cmd_not_found()
+    elif cmdl == "logout":
+        if (input("Are you sure you want to logout? (this cant be undone) (y/n): ")).lower() == "y":
+            os.remove(configfilepath)
+            cmdl_exit()
     else:
         cmdl_cmd_not_found()
