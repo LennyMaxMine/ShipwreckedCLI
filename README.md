@@ -86,6 +86,18 @@ Access user settings with the `user` command, then use:
 | `slack-connected` | Show Slack connection status |
 | `back` | Return to main menu |
 
+### Projects Commands
+
+Access the projects submenu with the `projects` command, then use:
+
+| Command | Description |
+|---------|-------------|
+| `list` | Display all your projects |
+| `details <project_id>` | View detailed project information |
+| `reviews <project_id>` | View Project reviews |
+| `stats` | Show project statistics |
+| `back` | Return to main menu |
+
 ### Always Available Commands
 | Command | Description |
 |---------|-------------|

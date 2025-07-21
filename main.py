@@ -13,6 +13,7 @@ configfilepath = "iljhna.shipwreckedcli"
 stored_user_name = ""
 inShop = False
 inUser = False
+inProjects = False
 
 if not os.path.exists(configfilepath):
     print("Welcome to ShipwreckedCLI. Let's get you all setup.")
@@ -52,6 +53,8 @@ def generate_cmd_line():
         currentscreen = "shop/"
     elif inUser == True:
         currentscreen = "user/"
+    elif inProjects == True:
+        currentscreen = "projects/"
     cmdline = f"\n{stored_user_name}@shipwrecked:~/{currentscreen}$ "
     return cmdline
 
@@ -163,15 +166,15 @@ def print_shop_inventory():
 
 def print_user_submenu_help_screen():
     print("--- User Submenu Commands ---")
-    print("name - show your name")
-    print("email - show your email")
-    print("address - show your address")
-    print("birthday - show your birthday")
-    print("phone - show your phone number")
+    print("name - Show your name")
+    print("email - Show your email")
+    print("address - Show your address")
+    print("birthday - Show your birthday")
+    print("phone - Show your phone number")
     print("id - print your id")
-    print("email-verification - show your email verification status")
-    print("identity-verification - show your identity verification status")
-    print("slack-connected - show your slack connection status")
+    print("email-verification - Show your email verification status")
+    print("identity-verification - Show your identity verification status")
+    print("slack-connected - Show your slack connection status")
     print("back - exit back to main programm")
 
 def user_submenu_commands(field):
@@ -256,6 +259,149 @@ def fetch():
     print("    Frankfurt, Germany | HC Shipwrecked 2025")
     print("    ⚓ ═══════════════════════════════ ⚓")
     print()
+    
+def print_projects_submenu_help_screen():
+    print("--- Projects Submenu Commands ---")
+    print("list - View all your projects")
+    print("details <project_id> - View detailed project information")
+    print("reviews <project_id> - View project reviews")
+    print("stats - Show project statistics")
+    print("back - exit back to main program")
+
+def print_projects_submenu_help_screen():
+    print("--- Projects Submenu Commands ---")
+    print("list - View all your projects")
+    print("details <project_id> - View detailed project information")
+    print("reviews <project_id> - View project reviews")
+    print("stats - Show project statistics")
+    print("back - exit back to main program")
+
+def print_projects_list():
+    r = requests.get("https://shipwrecked.hackclub.com/api/projects", headers=user_headers)
+    data = r.json()
+    
+    if not data:
+        print("You have no projects yet!")
+        return
+    
+    print(f"Your Projects ({len(data)} total)")
+    print("=" * 50)
+    
+    for project in data:
+        status_icons = []
+        if project["shipped"]: status_icons.append("Shipped")
+        if project["submitted"]: status_icons.append("Submitted")
+        if project["viral"]: status_icons.append("Viral")
+        if project["in_review"]: status_icons.append("In Review")
+        
+        status_text = " | ".join(status_icons) if status_icons else "Draft"
+        
+        print(f"\n--- {project['name']} (id: {project['projectID']}) ---")
+        print(f"{project['description']}")
+        print(f"Status: {status_text} with {project.get('rawHours', 0):.1f}h")
+        if project.get('codeUrl'):
+            print(f"Code: {project['codeUrl']}")
+        if project.get('playableUrl'):
+            print(f"Demo: {project['playableUrl']}")
+
+def print_project_details(project_id):
+    r = requests.get("https://shipwrecked.hackclub.com/api/projects", headers=user_headers)
+    projects = r.json()
+    
+    project = next((p for p in projects if p['projectID'] == project_id), None)
+    
+    if not project:
+        print(f"Project with ID '{project_id}' not found!")
+        return
+    
+    print(f"Project Details: {project['name']}")
+    print("=" * 60)
+    print(f"ID: {project['projectID']}")
+    print(f"Description: {project['description']}")
+    print(f"Total Hours: {project.get('rawHours', 0):.2f}h")
+
+    print(f"\nStatus:")
+    print(f"Shipped: {'Yes' if project['shipped'] else 'No'}")
+    print(f"Submitted: {'Yes' if project['submitted'] else 'No'}")
+    print(f"Viral: {'Yes' if project['viral'] else 'No'}")
+    print(f"In Review: {'Yes' if project['in_review'] else 'No'}")
+    print(f"Chat Enabled: {'Yes' if project['chat_enabled'] else 'No'}")
+    print(f"Has Repo Badge: {'Yes' if project['hasRepoBadge'] else 'No'}")
+
+    print(f"\nLinks:")
+    if project.get('codeUrl'):
+        print(f"Code: {project['codeUrl']}")
+    if project.get('playableUrl'):
+        print(f"Demo: {project['playableUrl']}")
+    if project.get('screenshot'):
+        print(f"Screenshot: {project['screenshot']}")
+  
+    if project.get('hackatimeLinks'):
+        print(f"\nHackatime Breakdown:")
+        for link in project['hackatimeLinks']:
+            print(f"• {link['hackatimeName']}: {link['hoursOverride']:.2f}h")
+
+def print_project_reviews(project_id):
+    r = requests.get(f"https://shipwrecked.hackclub.com/api/reviews?projectId={project_id}", headers=user_headers)
+    
+    if r.status_code != 200:
+        print(f"Error fetching reviews for project {project_id}")
+        return
+    
+    reviews = r.json()
+    
+    if not reviews:
+        print("No reviews found for this project.")
+        return
+    
+    print(f"Reviews for Project ({len(reviews)} total)")
+    print("=" * 60)
+    
+    for review in reviews:
+        reviewer_name = review['reviewer']['name']
+        review_date = datetime.fromisoformat(review['createdAt'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M')
+        
+        print(f"\nReviewer: {reviewer_name}")
+        print(f"Date: {review_date}")
+        
+        if review['reviewType']:
+            print(f"Type: {review['reviewType']}")
+        
+        if review['justification']:
+            print(f"Justification: {review['justification']}")
+        
+        print(f"Comment:")
+        comment_lines = review['comment'].split('\n')
+        for line in comment_lines:
+            print(f"{line}")
+
+def print_project_stats():
+    r = requests.get("https://shipwrecked.hackclub.com/api/projects", headers=user_headers)
+    projects = r.json()
+    
+    if not projects:
+        print("You have no projects yet!")
+        return
+    
+    total_projects = len(projects)
+    shipped_projects = sum(1 for p in projects if p['shipped'])
+    submitted_projects = sum(1 for p in projects if p['submitted'])
+    viral_projects = sum(1 for p in projects if p['viral'])
+    in_review_projects = sum(1 for p in projects if p['in_review'])
+    total_hours = sum(p.get('rawHours', 0) for p in projects)
+    
+    print("Project Statistics")
+    print("=" * 30)
+    print(f"Total Projects: {total_projects}")
+    print(f"Shipped: {shipped_projects}")
+    print(f"Submitted: {submitted_projects}")
+    print(f"Viral: {viral_projects}")
+    print(f"In Review: {in_review_projects}")
+    print(f"Total Hours: {total_hours:.1f}h")
+    
+    if total_projects > 0:
+        print(f"Average Hours/Project: {total_hours/total_projects:.1f}h")
+        print(f"Ship Rate: {(shipped_projects/total_projects)*100:.1f}%")
 
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
@@ -289,6 +435,29 @@ while True:
             cmdl_exit()
         else:
             user_submenu_commands(cmdl)
+    elif inProjects == True:
+        if cmdl.startswith("help"):
+            print_projects_submenu_help_screen()
+        elif cmdl == "back":
+            inProjects = False
+        elif cmdl == "list":
+            print_projects_list()
+        elif cmdl == "stats":
+            print_project_stats()
+        elif cmdl.startswith("details"):
+            cmdl_parts = cmdl.split(" ")
+            if len(cmdl_parts) == 2:
+                print_project_details(cmdl_parts[1])
+            else:
+                print("Usage: details <project_id>")
+        elif cmdl.startswith("reviews"):
+            cmdl_parts = cmdl.split(" ")
+            if len(cmdl_parts) == 2:
+                print_project_reviews(cmdl_parts[1])
+            else:
+                print("Usage: reviews <project_id>")
+        else:
+            cmdl_cmd_not_found()
     elif "help" in cmdl:
         cmdl = cmdl.split(" ")
         if len(cmdl) == 2:
@@ -296,19 +465,26 @@ while True:
                 print_shop_submenu_help_screen()
             elif "user" in cmdl[1]:
                 print_user_submenu_help_screen()
+            elif "projects" in cmdl[1]:
+                print_projects_submenu_help_screen()
         elif len(cmdl) == 1:
             print("--- General commands ---")
             print("help - Show this help message")
             print("whoami - Show your user data")
             print("session - Show your session data")
             print("progress - Show your progress to the island!")
-            print("leaderboard <length> - show the leaderboard sorted by hours")
+            print("leaderboard <length> - Show the leaderboard sorted by hours")
+            print("fetch - Fetch your ShipwreckedCli information")
+            print("logout - Delete all locally stored data")
             print("\n--- Submenus (use help <submenu> to view commands help page) ---")
             print("shop - enter the shop")
             print("user - enter the shipwrecked settings screen")
+            print("projects - enter the projects submenu")
         else:
             print("Uh oh, seems like that help command was invalid.")
             print(len(cmdl))
+        print("\n --- Always available commands ---")
+        print("clear - Clear the screen")
         print("exit - Exit the program")
     elif cmdl == "whoami":
         whoami()
@@ -335,6 +511,8 @@ while True:
             cmdl_cmd_not_found()
     elif cmdl == "fetch":
         fetch()
+    elif cmdl == "projects":
+        inProjects = True
     elif cmdl == "logout":
         if (input("Are you sure you want to logout? (this cant be undone) (y/n): ")).lower() == "y":
             os.remove(configfilepath)
