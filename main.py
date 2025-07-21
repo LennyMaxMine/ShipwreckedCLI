@@ -18,7 +18,7 @@ from src.submenus.projects import ProjectsClassOriginal
 from src.submenus.user import UserClassOriginal
 from src.submenus.shop import ShopClassOriginal
 
-version = "0.7.0"
+version = "1.0.0"
 
 configfilepath = "iljhna.shipwreckedcli"
 
@@ -33,7 +33,7 @@ if not os.path.exists(configfilepath):
     print("Well first start by logging you in!")
     print("You will find all the cookies you need for logging in under the 'Application' tab in the 'Cookies' section of your browser.\n")
     csrf_token = input("Please input your csrf-token (__Host-next-auth.csrf-token): ")
-    callback_url = input("Please input your callback-url (__Secure-next-auth.callback-url): ")
+    callback_url = "https%3A%2F%2Fshipwrecked.hackclub.com%2Fbay" #input("Please input your callback-url (__Secure-next-auth.callback-url): ")
     session_token = input("Please input your session-token (__Secure-next-auth.session-token): ")
 
     data = {
