@@ -3,8 +3,15 @@ import os
 from unittest import skip
 import requests
 from datetime import datetime, timezone
+import readline
+
+from urllib3.exceptions import InsecurePlatformWarning
 from src import leaderboard
 from src.leaderboard import generate_leaderboard, print_leaderboard_table
+
+from prompt_toolkit import prompt
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 
 version = "0.5.0"
 
@@ -113,6 +120,7 @@ def print_shop_submenu_help_screen():
     print("orders - view shop orders")
     print("inventory - view your fulfilled orders")
     print("back - exit back to main programm")
+    print("cd .. - Return to main menu")
 
 def print_shop_items():
     r = requests.get("https://shipwrecked.hackclub.com/api/bay/shop/items", headers=user_headers)
@@ -176,6 +184,7 @@ def print_user_submenu_help_screen():
     print("identity-verification - Show your identity verification status")
     print("slack-connected - Show your slack connection status")
     print("back - exit back to main programm")
+    print("cd .. - Return to main menu")
 
 def user_submenu_commands(field):
     r = requests.get("https://shipwrecked.hackclub.com/api/identity/me", headers=user_headers)
@@ -267,14 +276,8 @@ def print_projects_submenu_help_screen():
     print("reviews <project_id> - View project reviews")
     print("stats - Show project statistics")
     print("back - exit back to main program")
+    print("cd .. - Return to main menu")
 
-def print_projects_submenu_help_screen():
-    print("--- Projects Submenu Commands ---")
-    print("list - View all your projects")
-    print("details <project_id> - View detailed project information")
-    print("reviews <project_id> - View project reviews")
-    print("stats - Show project statistics")
-    print("back - exit back to main program")
 
 def print_projects_list():
     r = requests.get("https://shipwrecked.hackclub.com/api/projects", headers=user_headers)
@@ -403,16 +406,65 @@ def print_project_stats():
         print(f"Average Hours/Project: {total_hours/total_projects:.1f}h")
         print(f"Ship Rate: {(shipped_projects/total_projects)*100:.1f}%")
 
+def print_submenu_help_screen():
+    print("\n--- Submenus (use help <submenu> to view commands help page) ---")
+    print("Use cd <submenu> to enter a submenu")
+    print("shop - enter the shop")
+    print("user - enter the shipwrecked settings screen")
+    print("projects - enter the projects submenu")
+
+def disableallSubmenu():
+    inShop == False
+    inUser == False
+    inProjects == False
+
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
 
+main_commands = [
+    'exit', 'clear', 'cd', 'help', 'ls', 'whoami', 'session', 'progress', 'leaderboard', 'fetch', 'logout'
+]
+shop_commands = ['items', 'purchase', 'orders', 'inventory', 'back', 'cd ..', 'help']
+user_commands = ['name', 'email', 'address', 'birthday', 'phone', 'id', 'email-verification', 'identity-verification', 'slack-connected', 'back', 'cd ..', 'help']
+projects_commands = ['list', 'details', 'reviews', 'stats', 'back', 'cd ..', 'help']
+
+all_submenus = ['shop', 'user', 'projects']
+
+class CommandAutoSuggest(AutoSuggest):
+    def get_suggestion(self, buffer, document):
+        text = document.text_before_cursor
+        if inShop:
+            options = shop_commands
+        elif inUser:
+            options = user_commands
+        elif inProjects:
+            options = projects_commands
+        else:
+            options = main_commands + [f'cd {submenu}' for submenu in all_submenus]
+        matches = [cmd for cmd in options if cmd.startswith(text) and cmd != text]
+        if matches:
+            suggestion = matches[0][len(text):]
+            return Suggestion(suggestion)
+        return None
+
 while True:
-    cmdl = input(generate_cmd_line()).lower()
+    if inShop:
+        completer = WordCompleter(shop_commands, ignore_case=True)
+    elif inUser:
+        completer = WordCompleter(user_commands, ignore_case=True)
+    elif inProjects:
+        completer = WordCompleter(projects_commands, ignore_case=True)
+    else:
+        completer = WordCompleter(main_commands + [f'cd {submenu}' for submenu in all_submenus], ignore_case=True)
+    cmdl = prompt(generate_cmd_line(), completer=completer, auto_suggest=CommandAutoSuggest())
+    cmdl = cmdl.lower()
 
     if cmdl == "exit":
         cmdl_exit()
     elif cmdl == "clear":
         cmdl_clear()
+    elif cmdl == "cd ..":
+        disableallSubmenu()
     elif inShop == True:
         if cmdl == "back":
             inShop = False
@@ -470,16 +522,14 @@ while True:
         elif len(cmdl) == 1:
             print("--- General commands ---")
             print("help - Show this help message")
+            print("ls - Show all submenus")
             print("whoami - Show your user data")
             print("session - Show your session data")
             print("progress - Show your progress to the island!")
             print("leaderboard <length> - Show the leaderboard sorted by hours")
             print("fetch - Fetch your ShipwreckedCli information")
             print("logout - Delete all locally stored data")
-            print("\n--- Submenus (use help <submenu> to view commands help page) ---")
-            print("shop - enter the shop")
-            print("user - enter the shipwrecked settings screen")
-            print("projects - enter the projects submenu")
+            print_submenu_help_screen()
         else:
             print("Uh oh, seems like that help command was invalid.")
             print(len(cmdl))
@@ -492,10 +542,21 @@ while True:
         session()
     elif cmdl == "progress":
         progress()
-    elif cmdl == "shop":
+    elif cmdl.startswith("cd"):
+        cmdl = cmdl.split()
+        try:
+            if len(cmdl) == 2:
+                if cmdl[1] == "shop":
+                    inShop == True
+                elif cmdl[1] == "user":
+                    inUser == True
+                elif cmdl[1] == "projects":
+                    inProjects == True
+            else:
+                cmdl_cmd_not_found()
+        except:
+            cmdl_cmd_not_found()
         inShop = True
-    elif cmdl == "user":
-        inUser = True
     elif cmdl.startswith("leaderboard"):
         cmdl = cmdl.split()
         try:
@@ -511,11 +572,11 @@ while True:
             cmdl_cmd_not_found()
     elif cmdl == "fetch":
         fetch()
-    elif cmdl == "projects":
-        inProjects = True
     elif cmdl == "logout":
         if (input("Are you sure you want to logout? (this cant be undone) (y/n): ")).lower() == "y":
             os.remove(configfilepath)
             cmdl_exit()
+    elif cmdl == "ls":
+        print_submenu_help_screen()
     else:
         cmdl_cmd_not_found()

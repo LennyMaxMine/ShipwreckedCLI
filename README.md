@@ -50,16 +50,19 @@ A powerful terminal-based client for Hack Club's Shipwrecked hackathon website, 
 | Command | Description |
 |---------|-------------|
 | `help` | Show the main help message |
+| `ls` | Show all submenus |
 | `whoami` | Display your user profile data |
 | `session` | Show current session information |
 | `progress` | View your progress toward the island |
 | `leaderboard <length>` | Display leaderboard sorted by hours |
 | `logut` | Delete all your locally stored account data  |
 | `fetch` | Fetch your ShipwreckedCli information  |
+| `cd <submenu>` | Enter the selected submenu  |
+
 
 ### Shop Commands
 
-Access the shop with the `shop` command, then use:
+Access the shop with the `cd shop` command, then use:
 
 | Command | Description |
 |---------|-------------|
@@ -68,10 +71,11 @@ Access the shop with the `shop` command, then use:
 | `orders` | View your order history |
 | `inventory` | Check your fulfilled orders |
 | `back` | Return to main menu |
+| `cd ..` | Return to main menu  |
 
 ### User Management Commands
 
-Access user settings with the `user` command, then use:
+Access user settings with the `cd user` command, then use:
 
 | Command | Description |
 |---------|-------------|
@@ -85,10 +89,11 @@ Access user settings with the `user` command, then use:
 | `identity-verification` | Check identity verification status |
 | `slack-connected` | Show Slack connection status |
 | `back` | Return to main menu |
+| `cd ..` | Return to main menu  |
 
 ### Projects Commands
 
-Access the projects submenu with the `projects` command, then use:
+Access the projects submenu with the `cd projects` command, then use:
 
 | Command | Description |
 |---------|-------------|
@@ -97,6 +102,7 @@ Access the projects submenu with the `projects` command, then use:
 | `reviews <project_id>` | View Project reviews |
 | `stats` | Show project statistics |
 | `back` | Return to main menu |
+| `cd ..` | Return to main menu  |
 
 ### Always Available Commands
 | Command | Description |
