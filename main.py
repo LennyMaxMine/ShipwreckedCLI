@@ -13,7 +13,7 @@ from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 
-version = "0.5.0"
+version = "0.6.0"
 
 configfilepath = "iljhna.shipwreckedcli"
 
@@ -21,6 +21,7 @@ stored_user_name = ""
 inShop = False
 inUser = False
 inProjects = False
+inGallery = False
 
 if not os.path.exists(configfilepath):
     print("Welcome to ShipwreckedCLI. Let's get you all setup.")
@@ -62,6 +63,8 @@ def generate_cmd_line():
         currentscreen = "user/"
     elif inProjects == True:
         currentscreen = "projects/"
+    elif inGallery == True:
+        currentscreen = "gallery/"
     cmdline = f"\n{stored_user_name}@shipwrecked:~/{currentscreen}$ "
     return cmdline
 
@@ -414,9 +417,146 @@ def print_submenu_help_screen():
     print("projects - enter the projects submenu")
 
 def disableallSubmenu():
-    inShop == False
-    inUser == False
-    inProjects == False
+    global inShop, inUser, inProjects, inGallery
+    inShop = False
+    inUser = False
+    inProjects = False
+    inGallery = False
+
+def print_gallery_submenu_help_screen():
+    print("--- Gallery Submenu Commands ---")
+    print("list <amount> - View <amount> gallery projects")
+    print("details <project_id> - View detailed project information")
+    print("upvote <project_id> - Upvote a project")
+    print("popular - View projects sorted by upvotes")
+    print("recent - View projects by most recent chat activity")
+    print("search <term> - Search projects by name or description")
+    print("stats - Show gallery statistics")
+    print("back - exit back to main program")
+    print("cd .. - Return to main menu")
+
+def print_gallery_list(limit: int = 10):
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)
+    projects = r.json()
+    
+    if not projects:
+        print("No projects in gallery!")
+        return
+    
+    print(f"Gallery Projects (showing up to {min(limit, len(projects))} of {len(projects)} total)")
+    print("=" * 60)
+    
+    for project in projects[:limit]:
+        user_name = project['user']['name'] if project['user']['name'] else "Anonymous"
+        hours = project.get('rawHours', 0)
+        upvotes = project.get('upvoteCount', 0)
+        chats = project.get('chatCount', 0)
+        
+        status_icons = []
+        if project["shipped"]: status_icons.append("Shipped")
+        if project["viral"]: status_icons.append("Viral")
+        if project["chat_enabled"]: status_icons.append("Chat")
+        
+        status_text = " | ".join(status_icons) if status_icons else "Draft"
+        
+        print(f"\n--- {project['name']} by {user_name} (id: {project['projectID']}) ---")
+        print(f"{project['description']}")
+        print(f"Hours: {hours:.1f}h | Upvotes: {upvotes} | Chats: {chats}")
+        
+        if project.get('codeUrl'):
+            print(f"Code: {project['codeUrl']}")
+        if project.get('playableUrl'):
+            print(f"Demo: {project['playableUrl']}")
+
+def print_gallery_project_details(project_id):
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)    
+    projects = r.json()
+    project = next((p for p in projects if p['projectID'] == project_id), None)
+    
+    if not project:
+        print(f"Project with ID '{project_id}' not found in gallery!")
+        return
+    
+    user_name = project['user']['name'] if project['user']['name'] else "Anonymous"
+    user_slack = project['user']['slack'] if project['user']['slack'] else "Not connected"
+    user_hackatime = project['user']['hackatimeId'] if project['user']['hackatimeId'] else "N/A"
+    
+    print(f"Gallery Project Details: {project['name']}")
+    print("=" * 60)
+    print(f"ID: {project['projectID']}")
+    print(f"Description: {project['description']}")
+    print(f"Creator: {user_name} (Slack: {user_slack}, Hackatime: {user_hackatime})")
+    print(f"Total Hours: {project.get('rawHours', 0):.2f}h")
+    print(f"Upvotes: {project.get('upvoteCount', 0)} {'(You upvoted!)' if project.get('userUpvoted', False) else ''}")
+    print(f"Chat Messages: {project.get('chatCount', 0)}")
+    
+    if project.get('lastChatActivity'):
+        last_chat = datetime.fromisoformat(project['lastChatActivity'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M')
+        print(f"Last Chat Activity: {last_chat}")
+
+    print(f"\nStatus:")
+    print(f"Shipped: {'Yes' if project['shipped'] else 'No'}")
+    print(f"Viral: {'Yes' if project['viral'] else 'No'}")
+    print(f"Chat Enabled: {'Yes' if project['chat_enabled'] else 'No'}")
+
+    print(f"\nLinks:")
+    if project.get('codeUrl'):
+        print(f"Code: {project['codeUrl']}")
+    else:
+        print("Code: Not provided")
+    if project.get('playableUrl'):
+        print(f"Demo: {project['playableUrl']}")
+    else:
+        print("Demo: Not provided")
+    if project.get('screenshot'):
+        print(f"Screenshot: {project['screenshot']}")
+
+    if project.get('hackatimeLinks'):
+        print(f"\nHackatime Breakdown:")
+        for link in project['hackatimeLinks']:
+            hours = link.get('hoursOverride') or link.get('rawHours', 0)
+            print(f"• {link['hackatimeName']}: {hours:.2f}h")
+
+def print_gallery_popular():
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)
+    projects = r.json()
+    
+    # Sort by upvotes (descending)
+    sorted_projects = sorted(projects, key=lambda x: x.get('upvoteCount', 0), reverse=True)
+    
+    print("Most Popular Projects (by upvotes)")
+    print("=" * 40)
+    
+    for i, project in enumerate(sorted_projects[:10], 1):
+        user_name = project['user']['name'] if project['user']['name'] else "Anonymous"
+        upvotes = project.get('upvoteCount', 0)
+        hours = project.get('rawHours', 0)
+        
+        print(f"{i}. {project['name']} by {user_name} (id: {project["projectID"]})")
+        print(f"{upvotes} upvotes | {hours:.1f}h")
+        print(f"{project['description']}")
+        print()
+
+def print_gallery_recent():
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)
+    projects = r.json()
+    
+    projects_with_activity = [p for p in projects if p.get('lastChatActivity')]
+    sorted_projects = sorted(projects_with_activity, 
+                           key=lambda x: x['lastChatActivity'], reverse=True)
+    
+    print("Recently Active Projects (by chat activity)")
+    print("=" * 45)
+    
+    for project in sorted_projects[:10]:
+        user_name = project['user']['name'] if project['user']['name'] else "Anonymous"
+        last_chat = datetime.fromisoformat(project['lastChatActivity'].replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M')
+        chat_count = project.get('chatCount', 0)
+        
+        print(f"• {project['name']} by {user_name} (id: {project["projectID"]})")
+        print(f"Last activity: {last_chat} ({chat_count} messages)")
+        print()
+
 
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
@@ -427,8 +567,9 @@ main_commands = [
 shop_commands = ['items', 'purchase', 'orders', 'inventory', 'back', 'cd ..', 'help']
 user_commands = ['name', 'email', 'address', 'birthday', 'phone', 'id', 'email-verification', 'identity-verification', 'slack-connected', 'back', 'cd ..', 'help']
 projects_commands = ['list', 'details', 'reviews', 'stats', 'back', 'cd ..', 'help']
+gallery_commands = ['list', 'details', 'upvote', 'popular', 'recent', 'search', 'stats', 'back', 'cd ..', 'help']
 
-all_submenus = ['shop', 'user', 'projects']
+all_submenus = ['shop', 'user', 'projects', 'gallery']
 
 class CommandAutoSuggest(AutoSuggest):
     def get_suggestion(self, buffer, document):
@@ -439,6 +580,8 @@ class CommandAutoSuggest(AutoSuggest):
             options = user_commands
         elif inProjects:
             options = projects_commands
+        elif inGallery:
+            options = gallery_commands
         else:
             options = main_commands + [f'cd {submenu}' for submenu in all_submenus]
         matches = [cmd for cmd in options if cmd.startswith(text) and cmd != text]
@@ -454,6 +597,8 @@ while True:
         completer = WordCompleter(user_commands, ignore_case=True)
     elif inProjects:
         completer = WordCompleter(projects_commands, ignore_case=True)
+    elif inGallery:
+        completer = WordCompleter(gallery_commands, ignore_case=True)
     else:
         completer = WordCompleter(main_commands + [f'cd {submenu}' for submenu in all_submenus], ignore_case=True)
     cmdl = prompt(generate_cmd_line(), completer=completer, auto_suggest=CommandAutoSuggest())
@@ -510,6 +655,29 @@ while True:
                 print("Usage: reviews <project_id>")
         else:
             cmdl_cmd_not_found()
+    elif inGallery == True:
+        if cmdl.startswith("back"):
+            inGallery = False
+        elif cmdl.startswith("help"):
+            print_gallery_submenu_help_screen()
+        elif cmdl.startswith("list"):
+            parts = cmdl.split()
+            if len(parts) == 2 and parts[1].isdigit():
+                print_gallery_list(int(parts[1]))
+            else:
+                print_gallery_list()
+        elif cmdl.startswith("details"):
+            cmdl_parts = cmdl.split(" ")
+            if len(cmdl_parts) == 2:
+                print_gallery_project_details(cmdl_parts[1])
+            else:
+                cmdl_cmd_not_found()
+        elif cmdl == "popular":
+            print_gallery_popular()
+        elif cmdl == "recent":
+            print_gallery_recent()
+        else:
+            cmdl_cmd_not_found()
     elif "help" in cmdl:
         cmdl = cmdl.split(" ")
         if len(cmdl) == 2:
@@ -519,6 +687,8 @@ while True:
                 print_user_submenu_help_screen()
             elif "projects" in cmdl[1]:
                 print_projects_submenu_help_screen()
+            elif "gallery" in cmdl[1]:
+                print_gallery_submenu_help_screen()
         elif len(cmdl) == 1:
             print("--- General commands ---")
             print("help - Show this help message")
@@ -544,19 +714,19 @@ while True:
         progress()
     elif cmdl.startswith("cd"):
         cmdl = cmdl.split()
-        try:
-            if len(cmdl) == 2:
-                if cmdl[1] == "shop":
-                    inShop == True
-                elif cmdl[1] == "user":
-                    inUser == True
-                elif cmdl[1] == "projects":
-                    inProjects == True
+        if len(cmdl) == 2:
+            if cmdl[1] == "shop":
+                inShop = True
+            elif cmdl[1] == "user":
+                inUser = True
+            elif cmdl[1] == "projects":
+                inProjects = True
+            elif cmdl[1] == "gallery":
+                inGallery = True
             else:
                 cmdl_cmd_not_found()
-        except:
+        else:
             cmdl_cmd_not_found()
-        inShop = True
     elif cmdl.startswith("leaderboard"):
         cmdl = cmdl.split()
         try:
