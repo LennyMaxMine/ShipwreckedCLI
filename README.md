@@ -104,6 +104,22 @@ Access the projects submenu with the `cd projects` command, then use:
 | `back` | Return to main menu |
 | `cd ..` | Return to main menu  |
 
+### Gallery Commands
+
+Access the gallery submenu with the `cd gallery` command, then use:
+
+| Command | Description |
+|---------|-------------|
+| `list` | View all gallery projects |
+| `details <project_id>` | View detailed project information |
+| `upvote <project_id>` | Upvote a project |
+| `popular` | View projects sorted by upvotes |
+| `recent` | View projects by most recent chat activity |
+| `search <term>` | Search projects by name or description |
+| `stats` | Show gallery statistics |
+| `back` | Exit back to main program |
+| `cd ..` | Return to main menu |
+
 ### Always Available Commands
 | Command | Description |
 |---------|-------------|

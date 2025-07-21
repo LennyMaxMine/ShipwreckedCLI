@@ -557,6 +557,89 @@ def print_gallery_recent():
         print(f"Last activity: {last_chat} ({chat_count} messages)")
         print()
 
+def search_gallery(search_term):
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)
+    
+    if r.status_code != 200:
+        print("Error fetching gallery data")
+        return
+        
+    projects = r.json()
+    
+    matching_projects = []
+    for project in projects:
+        if (search_term.lower() in project['name'].lower() or 
+            search_term.lower() in project['description'].lower()):
+            matching_projects.append(project)
+    
+    if not matching_projects:
+        print(f"No projects found matching '{search_term}'")
+        return
+    
+    print(f"Search Results for '{search_term}' ({len(matching_projects)} found)")
+    print("=" * 50)
+    
+    for project in matching_projects:
+        user_name = project['user']['name'] if project['user']['name'] else "Anonymous"
+        upvotes = project.get('upvoteCount', 0)
+        hours = project.get('rawHours', 0)
+        
+        print(f"• {project['name']} by {user_name} (id: {project["projectID"]})")
+        print(f"{project['description']}")
+        print(f"{upvotes} upvotes | {hours:.1f}h")
+        print()
+
+def print_gallery_stats():
+    r = requests.get("https://shipwrecked.hackclub.com/api/gallery", headers=user_headers)
+    
+    if r.status_code != 200:
+        print("Error fetching gallery data")
+        return
+        
+    projects = r.json()
+    
+    if not projects:
+        print("No projects in gallery!")
+        return
+    
+    total_projects = len(projects)
+    shipped_projects = sum(1 for p in projects if p['shipped'])
+    viral_projects = sum(1 for p in projects if p['viral'])
+    chat_enabled = sum(1 for p in projects if p['chat_enabled'])
+    total_upvotes = sum(p.get('upvoteCount', 0) for p in projects)
+    total_hours = sum(p.get('rawHours', 0) for p in projects)
+    total_chats = sum(p.get('chatCount', 0) for p in projects)
+    
+    most_upvoted = max(projects, key=lambda x: x.get('upvoteCount', 0))
+    most_hours = max(projects, key=lambda x: x.get('rawHours', 0))
+    
+    print("Gallery Statistics")
+    print("=" * 30)
+    print(f"Total Projects: {total_projects}")
+    print(f"Shipped Projects: {shipped_projects}")
+    print(f"Viral Projects: {viral_projects}")
+    print(f"Chat Enabled: {chat_enabled}")
+    print(f"Total Upvotes: {total_upvotes}")
+    print(f"Total Hours: {total_hours:.1f}h")
+    print(f"Total Chat Messages: {total_chats}")
+    
+    if total_projects > 0:
+        print(f"Average Hours/Project: {total_hours/total_projects:.1f}h")
+        print(f"Average Upvotes/Project: {total_upvotes/total_projects:.1f}")
+        print(f"Ship Rate: {(shipped_projects/total_projects)*100:.1f}%")
+    
+    print(f"\nMost Popular: '{most_upvoted['name']}' with {most_upvoted.get('upvoteCount', 0)} upvotes")
+    print(f"Most Hours: '{most_hours['name']}' with {most_hours.get('rawHours', 0):.1f}h")
+
+def upvote_project(project_id: str):
+    project_id = project_id.strip(); project_id = project_id.replace(" ", "")
+    r = requests.post(f"https://shipwrecked.hackclub.com/api/projects/{project_id}/upvote", headers=user_headers)
+    data = r.json()
+
+    if data["upvoted"] == True:
+        print(f"Upvoted succesfully! (This Project now has {data["upvoteCount"]} upvotes)")
+    else:
+        print(f"Upvote removed succesfully! (This Project now has {data["upvoteCount"]} upvotes)")
 
 r_user_data()
 print("\nType 'exit' to exit the program & 'help' to see the list of commands.")
@@ -676,6 +759,20 @@ while True:
             print_gallery_popular()
         elif cmdl == "recent":
             print_gallery_recent()
+        elif cmdl == "stats":
+            print_gallery_stats()
+        elif cmdl.startswith("search"):
+            cmdl_parts = cmdl.split(" ", 1)
+            if len(cmdl_parts) == 2:
+                search_gallery(cmdl_parts[1])
+            else:
+                cmdl_cmd_not_found()
+        elif cmdl.startswith("upvote"):
+            cmdl_parts = cmdl.split(" ")
+            if len(cmdl_parts) == 2:
+                upvote_project(cmdl_parts[1])
+            else:
+                cmdl_cmd_not_found()
         else:
             cmdl_cmd_not_found()
     elif "help" in cmdl:
